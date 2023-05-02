@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 import JackFramework as jf
 
-from .your_dataloader import YourDataloader
+from .stereo_dataloader import StereoDataloader
 
 
 def dataloaders_zoo(args: object, name: str) -> object:
     for case in jf.Switch(name):
-        if case('YourDataloader'):
-            jf.log.info("Enter the your dataloader")
-            dataloader = YourDataloader(args)
+        if case('sceneflow') or case('kitti2012') or case('kitti2015')\
+                or case('crestereo') or case('eth3d') or case('rob') \
+                or case('middlebury') or case('US3D') or case('whu'):
+            jf.log.info("Enter the StereoDataloader")
+            dataloader = StereoDataloader(args)
             break
         if case(''):
             dataloader = None

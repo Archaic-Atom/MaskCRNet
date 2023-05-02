@@ -1,3 +1,4 @@
+# folder
 ResultImg/
 Submission/
 Checkpoint/
@@ -5,6 +6,9 @@ log/
 Example/
 Result*/
 /*__pycache__*/
+
+# file
+.DS_Store
 sftp-config*.json
 *.pyc
 STTStereo.sublime-workspace
