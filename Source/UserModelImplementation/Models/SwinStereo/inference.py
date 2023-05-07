@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 import torch
 # import torch.nn as nn
-# import torch.nn.functional as F
-# import torch.optim as optim
+import torch.nn.functional as F
+import torch.optim as optim
 import JackFramework as jf
 # import UserModelImplementation.user_define as user_def
 
 try:
     from .Networks.mask_stereo_matching import MaskStereoMatching
-    from .loss_functions import sequence_loss
+    from . import loss_functions as lf
 except ImportError:
     from Networks.mask_stereo_matching import MaskStereoMatching
-    from loss_functions import sequence_loss
+    import loss_functions as lf
 
 
 class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
     """docstring for RSStereoInterface"""
     MODEL_ID, DISP_IMG_ID = 0, 2
     LEFT_IMG_ID, RIGHT_IMG_ID = 0, 1
+    IMG_ID, MASK_IMG_ID, RANDOM_SAMPLE_LIST_ID = 0, 1, 2
 
     def __init__(self, args: object) -> object:
         super().__init__(args)
@@ -25,7 +26,6 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
 
     def get_model(self) -> list:
         args = self.__args
-        # return model
         if 'whu' == args.dataset:
             model = MaskStereoMatching(1, args.startDisp, args.dispNum, args.pre_train_opt)
         else:
@@ -40,9 +40,7 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
 
     def optimizer(self, model: list, lr: float) -> list:
         args = self.__args
-
-        opt = torch.optim.AdamW(model[self.MODEL_ID].parameters(), lr=lr,
-                                weight_decay=self.__args.weight_decay)
+        opt = optim.Adam(model[0].parameters(), lr=lr)
         if args.lr_scheduler:
             sch = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=args.lr_decay_rate)
         else:
@@ -60,15 +58,16 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
         args, outputs = self.__args, []
         if self.MODEL_ID == model_id:
             if args.pre_train_opt:
-                outputs.append(model(
-                    input_data[self.LEFT_IMG_ID], input_data[self.RIGHT_IMG_ID]))
+                outputs.append(model(input_data[self.IMG_ID],
+                                     input_data[self.MASK_IMG_ID],
+                                     input_data[self.RANDOM_SAMPLE_LIST_ID]))
             else:
                 if args.mode == 'test':
-                    outputs.append(model(
-                        input_data[self.LEFT_IMG_ID], input_data[self.RIGHT_IMG_ID]))
+                    outputs.append(model(input_data[self.LEFT_IMG_ID],
+                                         input_data[self.RIGHT_IMG_ID]).unsqueeze(0))
                 else:
-                    outputs.append(model(
-                        input_data[self.LEFT_IMG_ID], input_data[self.RIGHT_IMG_ID]))
+                    outputs = jf.Tools.convert2list(model(input_data[self.LEFT_IMG_ID],
+                                                          input_data[self.RIGHT_IMG_ID]))
         return outputs
 
     def accuracy(self, output_data: list, label_data: list, model_id: int) -> list:
@@ -80,12 +79,11 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 acc = (torch.abs(output_data[0][mask] - label_data[0][mask]) * 255).sum()
                 res.append(acc / mask.int().sum())
             else:
-
-                disp = output_data[0][0][:, 0, :, :]
-                if len(disp.shape) == 3:
-                    acc, mae = jf.acc.SMAccuracy.d_1(disp, label_data[0], invalid_value=-999)
-                    res.append(acc[1])
-                    res.append(mae)
+                for item in output_data:
+                    if len(item.shape) == 3:
+                        acc, mae = jf.acc.SMAccuracy.d_1(item, label_data[0], invalid_value=-999)
+                        res.append(acc[1])
+                        res.append(mae)
         return res
 
     def loss(self, output_data: list, label_data: list, model_id: int) -> list:
@@ -94,15 +92,17 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
         if self.MODEL_ID == model_id:
             if args.pre_train_opt:
                 mask = label_data[0] > 0
-                loss = (255 * (output_data[0][mask] - label_data[0][mask])) ** 2
+                loss = ((output_data[0][mask] - label_data[0][mask])) ** 2
                 loss = loss.sum() / mask.int().sum()
-            else:
-                gt_left, gt_mask = label_data[0], label_data[0] > -999
-                gt_left = gt_left.unsqueeze(1)
-                gt_flow = torch.cat([gt_left, gt_left * 0], dim=1)
-                loss = sequence_loss(
-                    output_data[0], gt_flow, gt_mask, gamma=0.8)
-        return [loss]
+                return [loss]
+
+            loss_0 = jf.loss.SMLoss.smooth_l1(
+                output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            loss_1 = jf.loss.SMLoss.smooth_l1(
+                output_data[1], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            loss_2 = jf.loss.SMLoss.smooth_l1(
+                output_data[2], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            return [loss_0 + loss_1 + loss_2]
 
     # Optional
     def pretreatment(self, epoch: int, rank: object) -> None:
@@ -120,16 +120,14 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
         args = self.__args
         #  return False
         if not args.pre_train_opt:
-            model.load_state_dict(checkpoint['model_0'], strict=False)
+            model.load_state_dict(checkpoint['model_0'], strict = False)
             jf.log.info("Model loaded successfully_add")
             return True
         return False
 
     # Optional
     def load_opt(self, opt: object, checkpoint: dict, model_id: int) -> bool:
-        # return False
         args = self.__args
-        #  return False
         if not args.pre_train_opt:
             return True
         return False

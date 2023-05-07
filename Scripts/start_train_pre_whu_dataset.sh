@@ -13,23 +13,23 @@ if [ -d "${tensorboard_folder}" ]; then
 fi
 
 echo "Begin to train the model!"
-CUDA_VISIBLE_DEVICES=4,5,6,7 nohup python -u Source/main.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --batchSize 1 \
-                        --gpu 4 \
+                        --gpu 8 \
                         --trainListPath ./Datasets/whu_reconstruction_training_list.csv \
-                        --imgWidth 256 \
-                        --imgHeight 256 \
+                        --imgWidth 224 \
+                        --imgHeight 224 \
                         --dataloaderNum 12 \
                         --maxEpochs 1000 \
                         --imgNum 2440 \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
-                        --lr 0.001 \
+                        --lr 0.0001 \
                         --dist true \
                         --modelDir ./Checkpoint/ \
                         --modelName SwinStereo \
                         --port ${dist_port} \
-                        --auto_save_num 50 \
+                        --auto_save_num 20 \
                         --lr_scheduler false \
                         --dataset whu > TrainRun.log 2>&1 &
 echo "You can use the command (>> tail -f TrainRun.log) to watch the training process!"

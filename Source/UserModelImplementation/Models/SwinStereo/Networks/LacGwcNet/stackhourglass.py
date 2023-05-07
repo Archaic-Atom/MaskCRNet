@@ -99,22 +99,14 @@ class hourglass_gwcnet(nn.Module):
 
 
 class PSMNet(nn.Module):
-    def __init__(self, in_channels, start_disp, maxdisp, struct_fea_c, fuse_mode,
-                 affinity_settings, udc, refine, mask=True):
+    def __init__(self, in_channels, feat_channels, start_disp, maxdisp, udc, refine):
         super(PSMNet, self).__init__()
         self.maxdisp = maxdisp
         self.start_disp = start_disp
-        self.sfc = struct_fea_c
-        self.affinity_settings = affinity_settings
         self.udc = udc
         self.refine = refine
-        self.mask = mask
 
-        self.feature_extraction = feature_extraction(in_channels, self.sfc, fuse_mode, affinity_settings)
-        if self.mask:
-            self.recovery_size = RecoverySize()
-
-        self.dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+        self.dres0 = nn.Sequential(convbn_3d(feat_channels, 32, 3, 1, 1),
                                    nn.ReLU(inplace=True),
                                    convbn_3d(32, 32, 3, 1, 1),
                                    nn.ReLU(inplace=True))
@@ -159,12 +151,7 @@ class PSMNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
-    def forward(self, left, right):
-
-        refimg_fea = self.feature_extraction(left)
-        targetimg_fea = self.feature_extraction(right)
-        if self.mask:
-            recovery_img = self.recovery_size(refimg_fea)
+    def forward(self, left, refimg_fea, targetimg_fea):
 
         # matching
         cost = torch.zeros(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4,
@@ -238,8 +225,6 @@ class PSMNet(nn.Module):
                 res.append(predr)
                 res.append(distributer)
 
-            if self.mask:
-                res.append(recovery_img)
             return res
         else:
             if self.refine:

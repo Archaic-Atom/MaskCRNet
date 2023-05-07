@@ -3,7 +3,7 @@ import torch.optim as optim
 
 import JackFramework as jf
 # import UserModelImplementation.user_define as user_def
-from .networks.stackhourglass import PSMNet
+from .Networks.stackhourglass import PSMNet
 import torch.nn.functional as F
 from . import loss_functions as lf
 
