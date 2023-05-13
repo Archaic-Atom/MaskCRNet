@@ -3,10 +3,11 @@ import torch
 from torch import nn
 from .BackBone.restormer import Restormer
 # from .CreStereo.cascade_raft import CREStereo
-from .PSMNet.model import PSMNet
+# from .PSMNet.model import PSMNet
 # from .BackBone.swin_transformer import SwinTransformerV2
 from .PSMNet.submodule import feature_extraction
 from .BackBone.extraction import BasicEncoder
+from .LacGwcNet.stackhourglass import PSMNet
 
 
 class MaskStereoMatching(nn.Module):
@@ -26,7 +27,7 @@ class MaskStereoMatching(nn.Module):
 
         if not self.pre_train_opt:
             # self.feature_matching = CREStereo(64)
-            self.feature_matching = PSMNet(384, start_disp = start_disp, maxdisp = disp_num)
+            self.feature_matching = PSMNet(1, 384, start_disp = start_disp, maxdisp = disp_num, udc=True, refine='csr')
 
     def _mask_pre_train_proc(self, left_img: torch.Tensor, mask_img_patch: torch.Tensor,
                              random_sample_list: torch.Tensor) -> torch.Tensor:

@@ -6,12 +6,8 @@ import torch.optim as optim
 import JackFramework as jf
 # import UserModelImplementation.user_define as user_def
 
-try:
-    from .Networks.mask_stereo_matching import MaskStereoMatching
-    from . import loss_functions as lf
-except ImportError:
-    from Networks.mask_stereo_matching import MaskStereoMatching
-    import loss_functions as lf
+from . import loss_functions as lf
+from .Networks.mask_stereo_matching import MaskStereoMatching
 
 
 class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
@@ -63,8 +59,8 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                                      input_data[self.RANDOM_SAMPLE_LIST_ID]))
             else:
                 if args.mode == 'test':
-                    outputs.append(model(input_data[self.LEFT_IMG_ID],
-                                         input_data[self.RIGHT_IMG_ID]).unsqueeze(0))
+                    disp = model(input_data[self.LEFT_IMG_ID], input_data[self.RIGHT_IMG_ID])
+                    outputs.append(disp)
                 else:
                     outputs = jf.Tools.convert2list(model(input_data[self.LEFT_IMG_ID],
                                                           input_data[self.RIGHT_IMG_ID]))
@@ -95,14 +91,27 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 loss = ((output_data[0][mask] - label_data[0][mask])) ** 2
                 loss = loss.sum() / mask.int().sum()
                 return [loss]
+            gt_left = label_data[0]
+            mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
+            loss_1 = 0.5 * F.smooth_l1_loss(output_data[0][mask], gt_left[mask]) + \
+                0.7 * F.smooth_l1_loss(output_data[1][mask], gt_left[mask]) + \
+                F.smooth_l1_loss(output_data[2][mask], gt_left[mask])
 
-            loss_0 = jf.loss.SMLoss.smooth_l1(
-                output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            loss_1 = jf.loss.SMLoss.smooth_l1(
-                output_data[1], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            loss_2 = jf.loss.SMLoss.smooth_l1(
-                output_data[2], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            return [loss_0 + loss_1 + loss_2]
+            gt_distribute = lf.disp2distribute(args.startDisp, gt_left, args.dispNum, b=2)
+            loss_2 = 0.5 * lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[3]) + \
+                0.7 * lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[4]) + \
+                lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[5])
+
+            loss_3 = F.smooth_l1_loss(output_data[6][mask], gt_left[mask])
+            loss_4 = lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[7])
+
+            # loss_0 = jf.loss.SMLoss.smooth_l1(
+            #     output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            # loss_1 = jf.loss.SMLoss.smooth_l1(
+            #    output_data[1], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            # loss_2 = jf.loss.SMLoss.smooth_l1(
+            #    output_data[2], label_data[0], args.startDisp, args.startDisp + args.dispNum)
+            return [loss_3 + loss_1 + loss_2 + loss_4, loss_3]
 
     # Optional
     def pretreatment(self, epoch: int, rank: object) -> None:
