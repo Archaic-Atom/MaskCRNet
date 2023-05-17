@@ -2,7 +2,7 @@
 import torch
 from torch import nn
 from .BackBone.restormer import Restormer
-# from .CreStereo.cascade_raft import CREStereo
+from .CreStereo.cascade_raft import CREStereo
 # from .PSMNet.model import PSMNet
 # from .BackBone.swin_transformer import SwinTransformerV2
 from .PSMNet.submodule import feature_extraction
@@ -27,7 +27,8 @@ class MaskStereoMatching(nn.Module):
 
         if not self.pre_train_opt:
             # self.feature_matching = CREStereo(64)
-            self.feature_matching = PSMNet(1, 384, start_disp = start_disp, maxdisp = disp_num, udc=True, refine='csr')
+            self.feature_matching = CREStereo(192)
+            # self.feature_matching = PSMNet(1, 384, start_disp = start_disp, maxdisp = disp_num, udc=True, refine='csr')
 
     def _mask_pre_train_proc(self, left_img: torch.Tensor, mask_img_patch: torch.Tensor,
                              random_sample_list: torch.Tensor) -> torch.Tensor:
@@ -38,7 +39,9 @@ class MaskStereoMatching(nn.Module):
     def _mask_fine_tune_proc(self, left_img: torch.Tensor, right_img: torch.Tensor) -> tuple:
         _, _, _, left_level3 = self.feature_extraction(left_img)
         _, _, _, right_level3 = self.feature_extraction(right_img)
-        return self.feature_matching(left_img, left_level3, right_level3)
+        print
+        # return self.feature_matching(left_img, left_level3, right_level3)
+        return self.feature_matching(left_level3, right_level3)
 
     def forward(self, left_img: torch.Tensor, right_img: torch.Tensor,
                 random_sample_list: torch.Tensor = None) -> torch.Tensor:

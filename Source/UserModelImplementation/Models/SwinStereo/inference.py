@@ -75,9 +75,10 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 acc = (torch.abs(output_data[0][mask] - label_data[0][mask]) * 255).sum()
                 res.append(acc / mask.int().sum())
             else:
-                for item in output_data:
-                    if len(item.shape) == 3:
-                        acc, mae = jf.acc.SMAccuracy.d_1(item, label_data[0], invalid_value=-999)
+                for idx, item in enumerate(output_data):
+                    disp = item[:, 0, :, :]
+                    if len(disp.shape) == 3 and idx > len(output_data) - 3:
+                        acc, mae = jf.acc.SMAccuracy.d_1(disp, label_data[0], invalid_value=-999)
                         res.append(acc[1])
                         res.append(mae)
         return res
@@ -92,18 +93,10 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 loss = loss.sum() / mask.int().sum()
                 return [loss]
             gt_left = label_data[0]
+            gt_left = gt_left.unsqueeze(1)
             mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
-            loss_1 = 0.5 * F.smooth_l1_loss(output_data[0][mask], gt_left[mask]) + \
-                0.7 * F.smooth_l1_loss(output_data[1][mask], gt_left[mask]) + \
-                F.smooth_l1_loss(output_data[2][mask], gt_left[mask])
-
-            gt_distribute = lf.disp2distribute(args.startDisp, gt_left, args.dispNum, b=2)
-            loss_2 = 0.5 * lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[3]) + \
-                0.7 * lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[4]) + \
-                lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[5])
-
-            loss_3 = F.smooth_l1_loss(output_data[6][mask], gt_left[mask])
-            loss_4 = lf.CEloss(args.startDisp, gt_left, args.dispNum, gt_distribute, output_data[7])
+            gt_flow = torch.cat([gt_left, gt_left * 0], dim=1)
+            loss = lf.sequence_loss(output_data, gt_flow, mask, gamma=0.8)
 
             # loss_0 = jf.loss.SMLoss.smooth_l1(
             #     output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
@@ -111,7 +104,7 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
             #    output_data[1], label_data[0], args.startDisp, args.startDisp + args.dispNum)
             # loss_2 = jf.loss.SMLoss.smooth_l1(
             #    output_data[2], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            return [loss_3 + loss_1 + loss_2 + loss_4, loss_3]
+            return [loss]
 
     # Optional
     def pretreatment(self, epoch: int, rank: object) -> None:

@@ -24,5 +24,4 @@ CUDA_VISIBLE_DEVICES=${eva_gpus_id} python  Source/main.py \
                         --outputDir ./TestResult/ \
                         --modelDir ./Checkpoint/ \
                         --dataset whu 
-
-CUDA_VISIBLE_DEVICES=${eva_gpus_id} python ./Source/Tools/evalution_stereo_net.py --gt_list_path ${test_list_path}
+CUDA_VISIBLE_DEVICES=${eva_gpus_id} python ./Source/Tools/evalution_stereo_net.py --gt_list_path ${test_list_path} --invaild_value -999 --img_path_format ./ResultImg/%06d_10.tiff

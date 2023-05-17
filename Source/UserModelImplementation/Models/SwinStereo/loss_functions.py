@@ -8,10 +8,23 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 
+def lac_gwcnet(output_data, gt_left, mask, startDisp, dispNum):
+    loss_1 = 0.5 * F.smooth_l1_loss(output_data[0][mask], gt_left[mask]) + \
+        0.7 * F.smooth_l1_loss(output_data[1][mask], gt_left[mask]) + \
+        F.smooth_l1_loss(output_data[2][mask], gt_left[mask])
+
+    gt_distribute = disp2distribute(startDisp, gt_left, dispNum, b=2)
+    loss_2 = 0.5 * CEloss(startDisp, gt_left, dispNum, gt_distribute, output_data[3]) + \
+        0.7 * CEloss(startDisp, gt_left, dispNum, gt_distribute, output_data[4]) + \
+        CEloss(startDisp, gt_left, dispNum, gt_distribute, output_data[5])
+
+    loss_3 = F.smooth_l1_loss(output_data[6][mask], gt_left[mask])
+    loss_4 = CEloss(startDisp, gt_left, dispNum, gt_distribute, output_data[7])
+    return loss_1 + loss_2 + loss_3 + loss_4
+
+
 def sequence_loss(flow_preds, flow_gt, valid, gamma=0.8):
-
     n_predictions, flow_loss = len(flow_preds), 0.0
-
     for i in range(n_predictions):
         i_weight = gamma ** (n_predictions - i - 1)
         i_loss = torch.abs(flow_preds[i] - flow_gt)

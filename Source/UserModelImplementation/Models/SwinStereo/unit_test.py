@@ -12,7 +12,7 @@ class SwinStereoUnitTest(object):
         super().__init__()
 
     def exec(self, args: object) -> None:
-        pre_train_opt = True
+        pre_train_opt = False
         left_img = torch.rand(1, 1, 256, 256).cuda()
         right_img = torch.rand(1, 2, 1, 32, 32).cuda() if pre_train_opt else torch.rand(1, 1, 256, 256).cuda()
         # right_img =
