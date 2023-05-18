@@ -59,8 +59,9 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                                      input_data[self.RANDOM_SAMPLE_LIST_ID]))
             else:
                 if args.mode == 'test':
-                    disp = model(input_data[self.LEFT_IMG_ID], input_data[self.RIGHT_IMG_ID])
-                    outputs.append(disp)
+                    disp = model(input_data[self.LEFT_IMG_ID],
+                                 input_data[self.RIGHT_IMG_ID])
+                    outputs.append(disp[:, 0, :, :])
                 else:
                     outputs = jf.Tools.convert2list(model(input_data[self.LEFT_IMG_ID],
                                                           input_data[self.RIGHT_IMG_ID]))
@@ -93,8 +94,8 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 loss = loss.sum() / mask.int().sum()
                 return [loss]
             gt_left = label_data[0]
-            gt_left = gt_left.unsqueeze(1)
             mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
+            gt_left = gt_left.unsqueeze(1)
             gt_flow = torch.cat([gt_left, gt_left * 0], dim=1)
             loss = lf.sequence_loss(output_data, gt_flow, mask, gamma=0.8)
 

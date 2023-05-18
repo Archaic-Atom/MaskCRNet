@@ -26,12 +26,11 @@ except:
 
 
 class CREStereo(nn.Module):
-    def __init__(self, in_channles, max_disp=192, mixed_precision=False, test_mode=False):
+    def __init__(self, in_channles, max_disp=192, mixed_precision=False):
         super(CREStereo, self).__init__()
 
         self.max_flow = max_disp
         self.mixed_precision = mixed_precision
-        self.test_mode = test_mode
 
         self.in_channles = in_channles
         self.hidden_dim = self.in_channles // 2
@@ -85,7 +84,7 @@ class CREStereo(nn.Module):
         zero_flow = torch.cat((_x, _y), dim=1).to(fmap.device)
         return zero_flow
 
-    def forward(self, image1, image2, flow_init=None, iters=10, upsample=True, test_mode=False):
+    def forward(self, image1, image2, flow_init=None, iters=10):
         """ Estimate optical flow between pair of frames """
 
         hdim = self.hidden_dim
@@ -246,7 +245,7 @@ class CREStereo(nn.Module):
             flow_up = -self.convex_upsample(flow, up_mask, rate=4)
             predictions.append(flow_up)
 
-        if self.test_mode:
+        if not self.training:
             return flow_up
 
         return predictions

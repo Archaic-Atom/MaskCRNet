@@ -8,7 +8,7 @@ class StereoDataloader(jf.UserTemplate.DataHandlerTemplate):
     """docstring for DataHandlerTemplate"""
     MODEL_ID = 0                                       # Model
     ID_INTERVAL_RECON = 3                              # reconstruction
-    ID_INTERVAL_STEREO = 2                             # stereo
+    ID_INTERVAL_STEREO = 3                             # stereo
 
     def __init__(self, args: object) -> object:
         super().__init__(args)

@@ -16,6 +16,7 @@ class MaskStereoMatching(nn.Module):
     def __init__(self, in_channles: int, start_disp: int, disp_num: int,
                  pre_train_opt: bool) -> None:
         super().__init__()
+        self.start_disp, self.disp_num = start_disp, disp_num
         self.pre_train_opt = pre_train_opt
         self.feature_extraction = Restormer(
             inp_channels = in_channles, out_channels = self.RECONSTRUCTION_CHANNELS,
@@ -39,7 +40,6 @@ class MaskStereoMatching(nn.Module):
     def _mask_fine_tune_proc(self, left_img: torch.Tensor, right_img: torch.Tensor) -> tuple:
         _, _, _, left_level3 = self.feature_extraction(left_img)
         _, _, _, right_level3 = self.feature_extraction(right_img)
-        print
         # return self.feature_matching(left_img, left_level3, right_level3)
         return self.feature_matching(left_level3, right_level3)
 
