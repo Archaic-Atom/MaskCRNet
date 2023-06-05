@@ -25,10 +25,13 @@ def lac_gwcnet(output_data, gt_left, mask, startDisp, dispNum):
 
 def sequence_loss(flow_preds, flow_gt, valid, gamma=0.8):
     n_predictions, flow_loss = len(flow_preds), 0.0
+    mask = valid.unsqueeze(1)
     for i in range(n_predictions):
         i_weight = gamma ** (n_predictions - i - 1)
-        i_loss = torch.abs(flow_preds[i] - flow_gt)
-        flow_loss += i_weight * (valid.unsqueeze(1) * i_loss).mean()
+        i_loss = F.smooth_l1_loss(mask * flow_preds[i], mask * flow_gt, reduction='mean')
+        flow_loss += i_weight * i_loss
+        # i_loss = torch.abs(flow_preds[i] - flow_gt)
+        # flow_loss += i_weight * (valid.unsqueeze(1) * i_loss).mean()
     return flow_loss
 
 

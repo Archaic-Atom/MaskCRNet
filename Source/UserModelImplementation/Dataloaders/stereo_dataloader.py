@@ -17,6 +17,14 @@ class StereoDataloader(jf.UserTemplate.DataHandlerTemplate):
         self.__train_dataset, self.__val_dataset = None, None
         self.__saver = dh.ReconstructionSaver(args) if args.pre_train_opt else dh.StereoSaver(args)
 
+    def _stereo_split_data(self, batch_data: tuple, is_training: bool) -> list:
+        args = self.__args
+        self.ID_INTERVAL_STEREO = 2 if is_training else 3
+        if args.mode != 'test' and not is_training:
+            self.ID_INTERVAL_STEREO = 2
+            return batch_data[:self.ID_INTERVAL_STEREO], [batch_data[self.ID_INTERVAL_STEREO]]
+        return batch_data[:self.ID_INTERVAL_STEREO], batch_data[self.ID_INTERVAL_STEREO:]
+
     def get_train_dataset(self, path: str, is_training: bool = True) -> object:
         args = self.__args
         if args.pre_train_opt:
@@ -34,24 +42,19 @@ class StereoDataloader(jf.UserTemplate.DataHandlerTemplate):
         args, self.__start_time = self.__args, time.time()
         if args.pre_train_opt:
             return batch_data[:self.ID_INTERVAL_RECON], batch_data[self.ID_INTERVAL_RECON:]
-        return batch_data[:self.ID_INTERVAL_STEREO], batch_data[self.ID_INTERVAL_STEREO:]
+        return self._stereo_split_data(batch_data, is_training)
 
-    def show_train_result(self, epoch: int, loss:
-                          list, acc: list,
-                          duration: float) -> None:
+    def show_train_result(self, epoch: int, loss: list, acc: list, duration: float) -> None:
         assert len(loss) == len(acc)  # same model number
         jf.log.info(self.__result_str.training_result_str(
             epoch, loss[self.MODEL_ID], acc[self.MODEL_ID], duration, True))
 
-    def show_val_result(self, epoch: int, loss:
-                        list, acc: list,
-                        duration: float) -> None:
+    def show_val_result(self, epoch: int, loss: list, acc: list, duration: float) -> None:
         assert len(loss) == len(acc)  # same model number
         jf.log.info(self.__result_str.training_result_str(
             epoch, loss[self.MODEL_ID], acc[self.MODEL_ID], duration, False))
 
-    def save_result(self, output_data: list, supplement: list,
-                    img_id: int, model_id: int) -> None:
+    def save_result(self, output_data: list, supplement: list, img_id: int, model_id: int) -> None:
         assert self.__train_dataset is not None
         args, off_set = self.__args, 1
         last_position = len(output_data) - off_set

@@ -36,7 +36,7 @@ def d_1(res: torch.tensor, gt: torch.tensor, start_threshold: int = 2,
         related_threshold = gt[mask] * relted_error
         for i in range(threshold_num):
             threshold = start_threshold + i
-            # acc = (error > threshold) & (error > related_threshold)
+            acc = (error > threshold) & (error > related_threshold)
             acc = (error > threshold)
             acc_num = acc.int().sum()
             error_rate = acc_num / (total_num + ACC_EPSILON)
