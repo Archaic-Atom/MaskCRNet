@@ -13,13 +13,13 @@ from .LacGwcNet.stackhourglass import PSMNet
 class MaskStereoMatching(nn.Module):
     RECONSTRUCTION_CHANNELS = 1
 
-    def __init__(self, in_channles: int, start_disp: int, disp_num: int,
+    def __init__(self, in_channles: int, reconstruction_channels: int, start_disp: int, disp_num: int,
                  pre_train_opt: bool) -> None:
         super().__init__()
         self.start_disp, self.disp_num = start_disp, disp_num
         self.pre_train_opt = pre_train_opt
         self.feature_extraction = Restormer(
-            inp_channels = in_channles, out_channels = self.RECONSTRUCTION_CHANNELS,
+            inp_channels = in_channles, out_channels = reconstruction_channels,
             dim = 48, pre_train_opt = pre_train_opt)
 
         # self.feature_extraction = SwinTransformerV2(img_size=(224, 224), patch_size=4, in_chans=1)

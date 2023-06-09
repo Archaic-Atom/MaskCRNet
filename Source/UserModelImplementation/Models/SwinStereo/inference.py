@@ -23,9 +23,9 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
     def get_model(self) -> list:
         args = self.__args
         if 'whu' == args.dataset:
-            model = MaskStereoMatching(1, args.startDisp, args.dispNum, args.pre_train_opt)
+            model = MaskStereoMatching(1, 1, args.startDisp, args.dispNum, args.pre_train_opt)
         else:
-            model = MaskStereoMatching(3, args.startDisp, args.dispNum, args.pre_train_opt)
+            model = MaskStereoMatching(3, 3, args.startDisp, args.dispNum, args.pre_train_opt)
 
         if not args.pre_train_opt:
             for name, param in model.named_parameters():
