@@ -28,8 +28,8 @@ class MaskStereoMatching(nn.Module):
 
         if not self.pre_train_opt:
             # self.feature_matching = CREStereo(64)
-            self.conv1 = nn.Conv2d(192, 256, 1, padding=0)
-            self.feature_matching = CREStereo(256)
+            self.conv1 = nn.Conv2d(192, 320, 1, padding=0)
+            self.feature_matching = CREStereo(320)
             # self.feature_matching = PSMNet(1, 384, start_disp = start_disp, maxdisp = disp_num, udc=True, refine='csr')
 
     def _mask_pre_train_proc(self, left_img: torch.Tensor, mask_img_patch: torch.Tensor,

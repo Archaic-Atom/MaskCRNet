@@ -99,7 +99,7 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
             mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
             gt_left = gt_left.unsqueeze(1)
             gt_flow = torch.cat([gt_left, gt_left * 0], dim=1)
-            loss = lf.sequence_loss(output_data, gt_flow, mask, gamma=0.9)
+            loss = lf.sequence_loss(output_data, gt_flow, mask, gamma=0.8)
 
             # loss_0 = jf.loss.SMLoss.smooth_l1(
             #     output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
