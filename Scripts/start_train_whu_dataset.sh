@@ -18,16 +18,18 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --gpu 8 \
                         --trainListPath ./Datasets/whu_stereo_training_list.csv \
                         --valListPath ./Datasets/whu_stereo_testing_list.csv \
-                        --imgWidth 640 \
-                        --imgHeight 320 \
+                        --imgWidth 448 \
+                        --imgHeight 448 \
                         --dataloaderNum 12 \
-                        --maxEpochs 400 \
+                        --maxEpochs 10000 \
                         --imgNum 1220 \
                         --valImgNum 450 \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
-                        --lr 0.0004 \
+                        --lr 0.00004 \
                         --dist true \
+                        --startDisp -128 \
+                        --dispNum 192 \
                         --modelDir ./Checkpoint/ \
                         --modelName SwinStereo \
                         --port ${dist_port} \

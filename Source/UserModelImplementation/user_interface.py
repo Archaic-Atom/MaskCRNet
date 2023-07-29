@@ -26,7 +26,7 @@ class UserInterface(jf.UserTemplate.NetWorkInferenceTemplate):
         #
         parser.add_argument('--startDisp', type=int, default=user_def.START_DISP,
                             help='start disparity')
-        parser.add_argument('--dispNum', default=user_def.DISP_NUM,
+        parser.add_argument('--dispNum', type=int, default=user_def.DISP_NUM,
                             help='disparity number')
         parser.add_argument('--lr_scheduler', type=UserInterface.__str2bool,
                             default=user_def.LR_SCHEDULER,

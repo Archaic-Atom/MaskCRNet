@@ -153,10 +153,7 @@ class WindowAttention(nn.Module):
 
         # cosine attention
         attn = (F.normalize(q, dim=-1) @ F.normalize(k, dim=-1).transpose(-2, -1))
-
-        logit_scale = torch.clamp(
-            self.logit_scale,
-            max=torch.log(torch.tensor(1. / 0.01).to(self.logit_scale.device))).exp()
+        logit_scale = torch.clamp(self.logit_scale, max=torch.log(torch.tensor(1. / 0.01))).exp()
         attn = attn * logit_scale
 
         relative_position_bias_table = self.cpb_mlp(self.relative_coords_table).view(-1, self.num_heads)
@@ -503,21 +500,6 @@ class PatchEmbed(nn.Module):
         return flops
 
 
-class up_conv(nn.Module):
-    def __init__(self, ch_in, ch_out):
-        super(up_conv, self).__init__()
-        self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x = self.up(x)
-        return x
-
-
 class SwinTransformerV2(nn.Module):
     r""" Swin Transformer
         A PyTorch impl of : `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows`  -
@@ -545,14 +527,13 @@ class SwinTransformerV2(nn.Module):
     """
 
     def __init__(self, img_size=224, patch_size=4, in_chans=3, num_classes=1000,
-                 embed_dim=24, depths=[4, 4, 6, 4], num_heads=[3, 6, 12, 24],
+                 embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
                  window_size=7, mlp_ratio=4., qkv_bias=True,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, pretrained_window_sizes=[0, 0, 0, 0],
-                 re_train_opt: bool = False, ** kwargs):
+                 use_checkpoint=False, pretrained_window_sizes=[0, 0, 0, 0], **kwargs):
         super().__init__()
-        self.img_size = img_size
+
         self.num_classes = num_classes
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
@@ -598,9 +579,9 @@ class SwinTransformerV2(nn.Module):
                                pretrained_window_size=pretrained_window_sizes[i_layer])
             self.layers.append(layer)
 
-            self.Up4 = up_conv(ch_in=192, ch_out=96)
-            self.Up3 = up_conv(ch_in=96, ch_out=48)
-            self.Up2 = up_conv(ch_in=48, ch_out=32)
+        self.norm = norm_layer(self.num_features)
+        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
         self.apply(self._init_weights)
         for bly in self.layers:
@@ -624,28 +605,29 @@ class SwinTransformerV2(nn.Module):
         return {"cpb_mlp", "logit_scale", 'relative_position_bias_table'}
 
     def forward_features(self, x):
+        print("1", x.shape)
         x = self.patch_embed(x)
+        print("2", x.shape)
         if self.ape:
             x = x + self.absolute_pos_embed
+        print("3", x.shape)
         x = self.pos_drop(x)
+        print("4", x.shape)
 
-        res = []
         for layer in self.layers:
             x = layer(x)
-            res.append(x)
 
-        img_size = to_2tuple(self.img_size)
-        b, _, _ = res[3].shape
-        x = res[2].reshape(b, img_size[0] // 32, img_size[1] // 32, 192) + res[3].reshape(b, img_size[0] // 32, img_size[1] // 32, 192)
-        x = x.permute(0, 3, 1, 2)
-        x = res[1].reshape(b, img_size[0] // 16, img_size[1] // 16, 96).permute(0, 3, 1, 2) + self.Up4(x)
-        x = res[0].reshape(b, img_size[0] // 8, img_size[1] // 8, 48).permute(0, 3, 1, 2) + self.Up3(x)
-        x = self.Up2(x)
+        print("6", x.shape)
+        x = self.norm(x)  # B L C
+        x = self.avgpool(x.transpose(1, 2))  # B C 1
+        x = torch.flatten(x, 1)
+        print("7", x.shape)
         return x
 
     def forward(self, x):
-        res = self.forward_features(x)
-        return res
+        x = self.forward_features(x)
+        x = self.head(x)
+        return x
 
     def flops(self):
         flops = 0
@@ -655,3 +637,13 @@ class SwinTransformerV2(nn.Module):
         flops += self.num_features * self.patches_resolution[0] * self.patches_resolution[1] // (2 ** self.num_layers)
         flops += self.num_features * self.num_classes
         return flops
+
+
+if __name__ == '__main__':
+    model = SwinTransformerV2(img_size=(448, 448))
+    # print(model)
+    num_params = sum(param.numel() for param in model.parameters())
+    print(num_params)
+    left_img = torch.rand(1, 3, 448, 448)
+    res = model(left_img)
+    print(res.shape)

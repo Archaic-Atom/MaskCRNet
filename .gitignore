@@ -6,9 +6,12 @@ log/
 Example/
 Result*/
 /*__pycache__*/
+Tmp/
 
 # file
 .DS_Store
 sftp-config*.json
 *.pyc
 STTStereo.sublime-workspace
+*.sublime-project
+*.sublime-workspace

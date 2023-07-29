@@ -27,6 +27,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
                         --lr 0.0004 \
+                        --startDisp -64 \
+                        --dispNum 128 \
                         --dist true \
                         --modelDir ./Checkpoint/ \
                         --modelName SwinStereo \

@@ -16,6 +16,8 @@ CUDA_VISIBLE_DEVICES=${test_gpus_id} python  Source/main.py \
                         --maxEpochs 45 \
                         --imgNum 4370 \
                         --sampleNum 1 \
+                        --startDisp -64 \
+                        --dispNum 128 \
                         --lr 0.001 \
                         --port 8808 \
                         --log ./TestLog/ \
