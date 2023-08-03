@@ -24,13 +24,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --imgNum 2440 \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
-                        --lr 0.0001 \
+                        --lr 0.00015 \
                         --dist true \
                         --modelDir ./Checkpoint/ \
                         --modelName SwinStereo \
                         --port ${dist_port} \
                         --auto_save_num 20 \
-                        --lr_scheduler false \
+                        --lr_scheduler true \
                         --dataset US3D > TrainRun.log 2>&1 &
 echo "You can use the command (>> tail -f TrainRun.log) to watch the training process!"
 

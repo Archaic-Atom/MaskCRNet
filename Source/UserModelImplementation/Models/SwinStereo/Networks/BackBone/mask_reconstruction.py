@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
+import numpy as np
 
 
 def reconstruct_img(img_size: tuple,
@@ -8,7 +9,8 @@ def reconstruct_img(img_size: tuple,
     b, c, h, w = img_size
     _, p_n, _, block_h, block_w = mask_img_patch.shape
     _, r_n = random_sample_list.shape
-    new_img = torch.zeros(b, c, h, w).to(mask_img_patch.device)
+
+    new_img = torch.normal(0, 1, (b, c, h, w)).to(mask_img_patch.device)
     assert p_n == r_n
     for i in range(b):
         for j in range(p_n):

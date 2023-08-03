@@ -5,7 +5,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 import JackFramework as jf
 # import UserModelImplementation.user_define as user_def
+import timm.optim.optim_factory as optim_factory
 
+import math
 from . import loss_functions as lf
 from .Networks.mask_stereo_matching import MaskStereoMatching
 
@@ -19,6 +21,17 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
     def __init__(self, args: object) -> object:
         super().__init__(args)
         self.__args = args
+
+    @staticmethod
+    def lr_lambda(epoch: int) -> float:
+        warmup_epochs = 40
+        cos_epoch = 2000
+        if epoch < warmup_epochs:
+            factor = epoch / warmup_epochs
+        else:
+            factor = 0.5 * \
+                (1. + math.cos(math.pi * (epoch - warmup_epochs) / cos_epoch))
+        return factor
 
     def get_model(self) -> list:
         args = self.__args
@@ -36,27 +49,28 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
 
     def optimizer(self, model: list, lr: float) -> list:
         args = self.__args
-        opt = optim.Adam(model[0].parameters(), lr=lr)
+        opt = torch.optim.AdamW(model[0].parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.05)
+        #opt = optim.Adam(model[0].parameters(), lr=lr)
         if args.lr_scheduler:
-            sch = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=args.lr_decay_rate)
+            sch = optim.lr_scheduler.LambdaLR(opt, lr_lambda=self.lr_lambda)
         else:
             sch = None
         return [opt], [sch]
 
     def lr_scheduler(self, sch: object, ave_loss: list, sch_id: int) -> None:
         # how to do schenduler
-        # if self.MODEL_ID == sch_id:
-        #    sch.step()
-        #    print("current learning rate", sch.get_lr())
-        pass
+        if self.MODEL_ID == sch_id:
+            sch.step()
+           # print("current learning rate", sch.get_lr())
 
     def inference(self, model: list, input_data: list, model_id: int) -> list:
         args, outputs = self.__args, []
         if self.MODEL_ID == model_id:
             if args.pre_train_opt:
-                outputs.append(model(input_data[self.IMG_ID],
-                                     input_data[self.MASK_IMG_ID],
-                                     input_data[self.RANDOM_SAMPLE_LIST_ID]))
+                outputs = jf.Tools.convert2list(
+                    model(input_data[self.IMG_ID],
+                          input_data[self.MASK_IMG_ID],
+                          input_data[self.RANDOM_SAMPLE_LIST_ID]))
             else:
                 if args.mode == 'test':
                     disp = model(input_data[self.LEFT_IMG_ID],
@@ -72,9 +86,9 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
         args, res = self.__args, []
         if self.MODEL_ID == model_id:
             if args.pre_train_opt:
-                mask = label_data[0] > 0
-                acc = (torch.abs(output_data[0][mask] - label_data[0][mask]) * 255).sum()
-                res.append(acc / mask.int().sum())
+                # mask = label_data[0] > 0
+                # res.append((torch.abs(output_data[0][mask] - label_data[0][mask]) * 255).mean())
+                res.append(output_data[1])
             else:
                 gt_left = label_data[0]
                 mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
@@ -91,22 +105,27 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
         args = self.__args
         if self.MODEL_ID == model_id:
             if args.pre_train_opt:
-                mask = label_data[0] > 0
-                loss = ((output_data[0][mask] - label_data[0][mask])) ** 2
-                loss = loss.sum() / mask.int().sum()
-                return [loss]
+                # print(output_data[2].shape)
+                # print(output_data[2] * 255)
+                # print(label_data[0] * 255)
+                # mask = label_data[0] > 0
+                # import cv2
+                # img = output_data[2][0, 0, :, :].cpu().detach().numpy()
+                # cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/1.png', img * 255)
+                # print(label_data[0].shape)
+                # img = label_data[0][0, 0, :, :].cpu().detach().numpy()
+
+                # cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/2.png', img * 255)
+                # mask = label_data[0] > 0
+                # loss = ((output_data[0][mask] - label_data[0][mask])) ** 2
+                # loss = loss.mean()
+                return [output_data[0]]
+
             gt_left = label_data[0]
             mask = (gt_left < args.startDisp + args.dispNum) & (gt_left > args.startDisp)
             gt_left = gt_left.unsqueeze(1)
             gt_flow = torch.cat([gt_left, gt_left * 0], dim=1)
             loss = lf.sequence_loss(output_data, gt_flow, mask, gamma=0.8)
-
-            # loss_0 = jf.loss.SMLoss.smooth_l1(
-            #     output_data[0], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            # loss_1 = jf.loss.SMLoss.smooth_l1(
-            #    output_data[1], label_data[0], args.startDisp, args.startDisp + args.dispNum)
-            # loss_2 = jf.loss.SMLoss.smooth_l1(
-            #    output_data[2], label_data[0], args.startDisp, args.startDisp + args.dispNum)
             return [loss]
 
     # Optional

@@ -640,10 +640,10 @@ class SwinTransformerV2(nn.Module):
 
 
 if __name__ == '__main__':
-    model = SwinTransformerV2(img_size=(448, 448))
+    model = SwinTransformerV2(img_size=(224, 448))
     # print(model)
     num_params = sum(param.numel() for param in model.parameters())
     print(num_params)
-    left_img = torch.rand(1, 3, 448, 448)
+    left_img = torch.rand(1, 3, 224, 448)
     res = model(left_img)
     print(res.shape)

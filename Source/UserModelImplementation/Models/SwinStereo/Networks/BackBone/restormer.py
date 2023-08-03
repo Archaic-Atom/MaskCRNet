@@ -18,7 +18,8 @@ class Restormer(nn.Module):
                  heads: list = [1, 2, 4, 8], ffn_expansion_factor: float = 2.66, bias: bool = False,
                  LayerNorm_type: str = 'WithBias',      # Other option 'BiasFree'
                  dual_pixel_task: bool = True,          # True for dual-pixel defocus deblurring only.
-                 pre_train_opt: bool = False) -> None:  # Also set inp_channels=6
+                 pre_train_opt: bool = False
+                 ) -> None:  # Also set inp_channels=6
         super().__init__()
         self.dual_pixel_task, self.pre_train_opt = dual_pixel_task, pre_train_opt
 
@@ -127,7 +128,7 @@ class Restormer(nn.Module):
             out_dec_level1 = self.refinement(out_dec_level1)
 
             if self.dual_pixel_task:
-                output = self.output(out_dec_level1 + self.skip_conv(inp_enc_level1))
+                output = torch.sigmoid(self.output(out_dec_level1 + self.skip_conv(inp_enc_level1)))
             else:
-                output = self.output(output) + inp_img
+                output = torch.sigmoid(self.output(output) + inp_img)
         return output, out_dec_level1, out_dec_level2, out_enc_level3

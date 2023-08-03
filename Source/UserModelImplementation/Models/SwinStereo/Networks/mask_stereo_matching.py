@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 from torch import nn
+from .BackBone.mae import mae_vit_base_patch16
 from .BackBone.restormer import Restormer
 from .CreStereo.cascade_raft import CREStereo
 # from .PSMNet.model import PSMNet
@@ -18,9 +19,10 @@ class MaskStereoMatching(nn.Module):
         super().__init__()
         self.start_disp, self.disp_num = start_disp, disp_num
         self.pre_train_opt = pre_train_opt
-        self.feature_extraction = Restormer(
-            inp_channels = in_channles, out_channels = reconstruction_channels,
-            dim = 48, pre_train_opt = pre_train_opt)
+        self.feature_extraction = mae_vit_base_patch16(img_size=(224, 224), in_chans=in_channles)
+        # self.feature_extraction = Restormer(
+        #    inp_channels = in_channles, out_channels = reconstruction_channels,
+        #    dim = 48, pre_train_opt = pre_train_opt)
 
         # self.feature_extraction = SwinTransformerV2(img_size=(224, 224), patch_size=4, in_chans=1)
         # self.feature_extraction = BasicEncoder(in_channles, output_dim=32, norm_fn='batch')
@@ -35,8 +37,9 @@ class MaskStereoMatching(nn.Module):
     def _mask_pre_train_proc(self, left_img: torch.Tensor, mask_img_patch: torch.Tensor,
                              random_sample_list: torch.Tensor) -> torch.Tensor:
 
-        output, _, _, _ = self.feature_extraction(mask_img_patch, left_img, random_sample_list)
-        return output
+        # output, _, _, _ = self.feature_extraction(mask_img_patch, left_img, random_sample_list)
+        output, acc, pred, _ = self.feature_extraction(left_img, 0.75)
+        return output, acc, pred
 
     def _mask_fine_tune_proc(self, left_img: torch.Tensor, right_img: torch.Tensor,
                              flow_init: torch.Tensor) -> tuple:

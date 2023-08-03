@@ -3,6 +3,8 @@
 tensorboard_port=6234
 dist_port=8809
 tensorboard_folder='./log/'
+train_list_path='./Datasets/debug_dataset.csv'
+# train_list_path=./Datasets/whu_reconstruction_training_list.csv 
 echo "The tensorboard_port:" ${tensorboard_port}
 echo "The dist_port:" ${dist_port}
 
@@ -15,8 +17,8 @@ fi
 echo "Begin to train the model!"
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --batchSize 1 \
-                        --gpu 8 \
-                        --trainListPath ./Datasets/whu_reconstruction_training_list.csv \
+                        --gpu 1 \
+                        --trainListPath ${train_list_path} \
                         --imgWidth 224 \
                         --imgHeight 224 \
                         --dataloaderNum 12 \
@@ -24,13 +26,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --imgNum 2440 \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
-                        --lr 0.0001 \
+                        --lr 0.00015 \
                         --dist true \
                         --modelDir ./Checkpoint/ \
                         --modelName SwinStereo \
                         --port ${dist_port} \
                         --auto_save_num 20 \
-                        --lr_scheduler false \
+                        --lr_scheduler true \
                         --dataset whu > TrainRun.log 2>&1 &
 echo "You can use the command (>> tail -f TrainRun.log) to watch the training process!"
 
