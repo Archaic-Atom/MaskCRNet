@@ -19,7 +19,8 @@ class MaskStereoMatching(nn.Module):
         super().__init__()
         self.start_disp, self.disp_num = start_disp, disp_num
         self.pre_train_opt = pre_train_opt
-        self.feature_extraction = mae_vit_base_patch16(img_size=(224, 224), in_chans=in_channles)
+        self.feature_extraction = mae_vit_base_patch16(img_size=(448, 448), in_chans=in_channles)
+        self.num_patches = self.feature_extraction.patch_embed.num_patches
         # self.feature_extraction = Restormer(
         #    inp_channels = in_channles, out_channels = reconstruction_channels,
         #    dim = 48, pre_train_opt = pre_train_opt)
@@ -36,7 +37,13 @@ class MaskStereoMatching(nn.Module):
 
     def _mask_pre_train_proc(self, left_img: torch.Tensor, mask_img_patch: torch.Tensor,
                              random_sample_list: torch.Tensor) -> torch.Tensor:
-
+        '''
+        import cv2
+        img = left_img[0, :, :, :].cpu().detach().numpy()
+        print(img.shape)
+        img = img.transpose(1, 2, 0)
+        cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/3.png', img * 255)
+        '''
         # output, _, _, _ = self.feature_extraction(mask_img_patch, left_img, random_sample_list)
         output, acc, pred, _ = self.feature_extraction(left_img, 0.75)
         return output, acc, pred

@@ -25,7 +25,7 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
     @staticmethod
     def lr_lambda(epoch: int) -> float:
         warmup_epochs = 40
-        cos_epoch = 2000
+        cos_epoch = 1000
         if epoch < warmup_epochs:
             factor = epoch / warmup_epochs
         else:
@@ -109,13 +109,17 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
                 # print(output_data[2] * 255)
                 # print(label_data[0] * 255)
                 # mask = label_data[0] > 0
-                # import cv2
-                # img = output_data[2][0, 0, :, :].cpu().detach().numpy()
-                # cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/1.png', img * 255)
-                # print(label_data[0].shape)
-                # img = label_data[0][0, 0, :, :].cpu().detach().numpy()
-
-                # cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/2.png', img * 255)
+                '''
+                import cv2
+                img = output_data[2][0, :, :, :].cpu().detach().numpy()
+                print(img.shape)
+                img = img.transpose(1, 2, 0)
+                cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/1.png', img * 255)
+                print(label_data[0].shape)
+                img = label_data[0][0, :, :, :].cpu().detach().numpy()
+                img = img.transpose(1, 2, 0)
+                cv2.imwrite('/home2/raozhibo/Documents/Programs/RSStereo/Tmp/imgs/2.png', img * 255)
+                '''
                 # mask = label_data[0] > 0
                 # loss = ((output_data[0][mask] - label_data[0][mask])) ** 2
                 # loss = loss.mean()
@@ -147,7 +151,21 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
             model.load_state_dict(checkpoint['model_0'], strict = False)
             jf.log.info("Model loaded successfully_add")
             return True
-        return False
+        # print(checkpoint['model_0'])
+        # checkpoint['model_0']['pos_embed']
+        #
+        #state_dict = model.state_dict()
+        # print(checkpoint['model_0']['feature_extraction']['pos_embed'])
+
+        checkpoint['model_0']['module.feature_extraction.pos_embed'] = self.interpolate_pos_embed(
+            checkpoint['model_0']['module.feature_extraction.pos_embed'],
+            448 * 448 / 16 / 16)
+        checkpoint['model_0']['module.feature_extraction.decoder_pos_embed'] = self.interpolate_pos_embed(
+            checkpoint['model_0']['module.feature_extraction.decoder_pos_embed'],
+            448 * 448 / 16 / 16)
+        model.load_state_dict(checkpoint['model_0'], strict = True)
+        jf.log.info("Model loaded successfully_add")
+        return True
 
     # Optional
     def load_opt(self, opt: object, checkpoint: dict, model_id: int) -> bool:
@@ -160,3 +178,21 @@ class SwinStereoInterface(jf.UserTemplate.ModelHandlerTemplate):
     def save_model(self, epoch: int, model_list: list, opt_list: list) -> dict:
         # return None
         return None
+
+    @staticmethod
+    def interpolate_pos_embed(pos_embed_checkpoint, num_patches) -> None:
+        embedding_size, num_extra_tokens = pos_embed_checkpoint.shape[-1], 1
+        orig_size = int((pos_embed_checkpoint.shape[-2] - num_extra_tokens) ** 0.5)
+        new_size = int(num_patches ** 0.5)
+        # class_token and dist_token are kept unchanged
+        if orig_size != new_size:
+            print("Position interpolate from %dx%d to %dx%d" % (orig_size, orig_size, new_size, new_size))
+            extra_tokens = pos_embed_checkpoint[:, :num_extra_tokens]
+            # only the position tokens are interpolated
+            pos_tokens = pos_embed_checkpoint[:, num_extra_tokens:]
+            pos_tokens = pos_tokens.reshape(-1, orig_size, orig_size, embedding_size).permute(0, 3, 1, 2)
+            pos_tokens = torch.nn.functional.interpolate(
+                pos_tokens, size=(new_size, new_size), mode='bicubic', align_corners=False)
+            pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(1, 2)
+            return torch.cat((extra_tokens, pos_tokens), dim=1)
+        return pos_embed_checkpoint
