@@ -37,7 +37,7 @@ def d_1(res: torch.tensor, gt: torch.tensor, start_threshold: int = 2,
         for i in range(threshold_num):
             threshold = start_threshold + i
             acc = (error > threshold) & (error > related_threshold)
-            acc = (error > threshold)
+            # acc = (error > threshold)
             acc_num = acc.int().sum()
             error_rate = acc_num / (total_num + ACC_EPSILON)
             acc_res.append(error_rate)
@@ -147,6 +147,7 @@ def cal_total(id_num: int, total: np.array, err_total: int,
     for i in range(threshold_num):
         d1_res = acc_res[i].cpu()
         d1_res = d1_res.detach().numpy()
+        print(d1_res)
         total[i] = total[i] + d1_res
         str_data = str_data + str(d1_res) + ' '
 
@@ -198,15 +199,17 @@ def evalution(epoch: int, img_path_format: str, gt_list_path: str,
                            threshold_num=threshold_num,
                            invaild_value=invaild_value)
     eval_model = torch.nn.DataParallel(eval_model).cuda()
-
     for i in range(total_img_num):
         img_path = img_path_format % (i)
         gt_path = gt_dsp_path[i]
+        print(img_path, gt_path)
 
         img, img_gt = get_data(img_path, gt_path)
         img, img_gt = data2cuda(img, img_gt)
 
         acc_res, mae = eval_model(img, img_gt)
+        print(acc_res)
+        print(mae)
         total, err_total = cal_total(i, total,
                                      err_total, acc_res,
                                      mae, threshold_num)

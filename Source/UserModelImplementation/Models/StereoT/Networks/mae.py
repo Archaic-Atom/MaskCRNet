@@ -1,16 +1,5 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-# --------------------------------------------------------
-# References:
-# timm: https://github.com/rwightman/pytorch-image-models/tree/master/timm
-# DeiT: https://github.com/facebookresearch/deit
-# --------------------------------------------------------
-
+# -*- coding: utf-8 -*-
 from functools import partial
-
 import torch
 import torch.nn as nn
 
@@ -40,50 +29,42 @@ class MaskedAutoencoderViT(nn.Module):
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)  # fixed sin-cos embedding
-
-        self.blocks = nn.ModuleList(
-            [
-                Block(
-                    embed_dim,
-                    num_heads,
-                    mlp_ratio,
-                    qkv_bias=True,
-                    norm_layer=norm_layer,
-                )
-                for _ in range(depth)
-            ]
-        )
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim),
+                                      requires_grad=False)
+        # fixed sin-cos embedding
+        self.blocks = nn.ModuleList([
+            Block(
+                embed_dim,
+                num_heads,
+                mlp_ratio,
+                qkv_bias=True,
+                norm_layer=norm_layer,
+            )
+            for _ in range(depth)
+        ])
         self.norm = norm_layer(embed_dim)
         # --------------------------------------------------------------------------
 
         # --------------------------------------------------------------------------
         # MAE decoder specifics
         self.decoder_embed = nn.Linear(embed_dim, decoder_embed_dim, bias=True)
-
         self.mask_token = nn.Parameter(torch.zeros(1, 1, decoder_embed_dim))
-
         self.decoder_pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, decoder_embed_dim), requires_grad=False)  # fixed sin-cos embedding
-
-        self.decoder_blocks = nn.ModuleList(
-            [
-                Block(
-                    decoder_embed_dim,
-                    decoder_num_heads,
-                    mlp_ratio,
-                    qkv_bias=True,
-                    norm_layer=norm_layer,
-                )
-                for _ in range(decoder_depth)
-            ]
-        )
+        self.decoder_blocks = nn.ModuleList([
+            Block(
+                decoder_embed_dim,
+                decoder_num_heads,
+                mlp_ratio,
+                qkv_bias=True,
+                norm_layer=norm_layer,)
+            for _ in range(decoder_depth)
+        ])
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
         self.decoder_pred = nn.Linear(decoder_embed_dim, patch_size**2 * in_chans, bias=True)  # decoder to patch
         # --------------------------------------------------------------------------
 
         self.norm_pix_loss = norm_pix_loss
-
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -245,11 +226,11 @@ class MaskedAutoencoderViT(nn.Module):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
         # print(ids_restore)
         # print(mask)
-        print(ids_restore)
-        print(mask)
+        # print(ids_restore)
+        # print(mask)
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
         loss, acc = self.forward_loss(imgs, pred, mask)
-        return loss, acc, self.unpatchify(pred), mask
+        return loss, acc, self.unpatchify(pred), mask, latent
 
 
 def mae_vit_base_patch16_dec512d8b(**kwargs):
@@ -303,16 +284,18 @@ mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 b
 mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
 
 if __name__ == '__main__':
-    model = mae_vit_base_patch16(img_size=(224, 224), in_chans=1)
+    model = mae_vit_base_patch16(img_size=(448, 448), in_chans=192)
     res = []
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(num_params)
     num_params = sum(param.numel() for param in model.parameters())
     print(num_params)
-
-    left_img = torch.rand(1, 1, 224, 224)
-    res = model(left_img, mask_ratio=0)
+    model = model.cuda()
+    left_img = torch.rand(1, 192, 448, 448).cuda()
+    for _ in range(100):
+        res = model(left_img, mask_ratio=0)
+        print(res[4].shape)
     print(res[1].shape)
-    image = model.unpatchify(res[1])
-    print(image.shape)
+    # image = model.unpatchify(res[1])
+    # print(image.shape)

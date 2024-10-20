@@ -4,6 +4,7 @@ import JackFramework as jf
 from .RSStereo import RSStereoInterface
 from .LaCGwcNet import LacGwcNetworkInterface
 from .SwinStereo import SwinStereoInterface
+# from .StereoT import StereoTInterface
 
 
 def model_zoo(args: object, name: str) -> object:
@@ -19,6 +20,10 @@ def model_zoo(args: object, name: str) -> object:
         if case('LacGwcNet'):
             jf.log.info("Enter the LacGwcNet model")
             model = LacGwcNetworkInterface(args)
+            break
+        if case('StereoT'):
+            jf.log.info("Enter the StereoT model")
+            # model = StereoTInterface(args)
             break
         if case(''):
             model = None

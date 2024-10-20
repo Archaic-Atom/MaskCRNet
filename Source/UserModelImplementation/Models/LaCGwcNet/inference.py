@@ -35,7 +35,7 @@ class LacGwcNetworkInterface(jf.UserTemplate.ModelHandlerTemplate):
         affinity_settings['win_w'] = 3
         affinity_settings['win_h'] = 3
         affinity_settings['dilation'] = [1, 2, 4, 8]
-        model = PSMNet(1, start_disp=args.startDisp, maxdisp=args.dispNum,
+        model = PSMNet(3, start_disp=args.startDisp, maxdisp=args.dispNum,
                        struct_fea_c=4, fuse_mode='separate',
                        affinity_settings=affinity_settings, udc=True, refine='csr', mask=False)
         return [model]

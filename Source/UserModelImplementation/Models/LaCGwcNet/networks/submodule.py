@@ -74,7 +74,7 @@ class DisparityRegression(nn.Module):
         self.start_disp = start_disp
 
     def forward(self, x):
-
+        self.win_siz = 0
         if self.win_size > 0:
             max_d = torch.argmax(x, dim=1, keepdim=True)
             d_value = []

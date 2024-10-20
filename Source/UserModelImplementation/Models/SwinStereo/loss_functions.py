@@ -135,14 +135,12 @@ def random_noise(img, type):
 
 def gradient_x(img):
     img = F.pad(img, [0, 1, 0, 0], mode='replicate')
-    gx = img[:, :, :, :-1] - img[:, :, :, 1:]
-    return gx
+    return img[:, :, :, :-1] - img[:, :, :, 1:]
 
 
 def gradient_y(img):
     img = F.pad(img, [0, 0, 0, 1], mode='replicate')
-    gy = img[:, :, :-1, :] - img[:, :, 1:, :]
-    return gy
+    return img[:, :, :-1, :] - img[:, :, 1:, :]
 
 
 def smooth_loss(img, disp):

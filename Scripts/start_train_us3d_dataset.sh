@@ -13,10 +13,10 @@ if [ -d "${tensorboard_folder}" ]; then
 fi
 
 echo "Begin to train the model!"
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 nohup python -u Source/main.py \
                         --batchSize 1 \
-                        --gpu 8 \
-                        --trainListPath ./Datasets/us3d_stereo_val_list.csv \
+                        --gpu 7 \
+                        --trainListPath ./Datasets/1.csv \
                         --valListPath ./Datasets/us3d_stereo_training_list.csv \
                         --imgWidth 448 \
                         --imgHeight 448 \
@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 nohup python -u Source/main.py \
                         --dispNum 128 \
                         --dist true \
                         --modelDir ./Checkpoint/ \
-                        --modelName SwinStereo \
+                        --modelName LacGwcNet \
                         --port ${dist_port} \
                         --auto_save_num 1 \
                         --lr_scheduler false \

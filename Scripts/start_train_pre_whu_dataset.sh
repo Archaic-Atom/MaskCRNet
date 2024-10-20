@@ -3,8 +3,8 @@
 tensorboard_port=6234
 dist_port=8809
 tensorboard_folder='./log/'
-# train_list_path='./Datasets/debug_dataset.csv'
-train_list_path=./Datasets/whu_reconstruction_training_list.csv 
+train_list_path='./Datasets/debug_dataset.csv'
+# train_list_path=./Datasets/whu_reconstruction_training_list.csv 
 echo "The tensorboard_port:" ${tensorboard_port}
 echo "The dist_port:" ${dist_port}
 
@@ -17,12 +17,12 @@ fi
 echo "Begin to train the model!"
 CUDA_VISIBLE_DEVICES=2,3,4,5,6,7 nohup python -u Source/main.py \
                         --batchSize 2 \
-                        --gpu 6 \
+                        --gpu 1 \
                         --trainListPath ${train_list_path} \
                         --imgWidth 448 \
                         --imgHeight 448 \
                         --dataloaderNum 12 \
-                        --maxEpochs 1000 \
+                        --maxEpochs 1 \
                         --imgNum 2440 \
                         --sampleNum 1 \
                         --log ${tensorboard_folder} \
